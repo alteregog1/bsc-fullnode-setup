@@ -39,3 +39,6 @@ echo "========================================================="
 echo "Input your snapshot endpoint: "
 read eu_endpoint 
 nohup wget -bqc -O geth.tar.lz4 $eu_endpoint &
+echo "========================================================="
+echo "=    Downloading on background process, please wait     ="
+echo "========================================================="
