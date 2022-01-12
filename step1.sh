@@ -8,7 +8,7 @@ apt-get install lz4 -y
 
 geth_linux="https://github.com/binance-chain/bsc/releases/download/v1.1.7/geth_linux"
 mainnet="https://github.com/binance-chain/bsc/releases/download/v1.1.7/mainnet.zip"
-
+config_toml="https://raw.githubusercontent.com/alteregog1/bsc-fullnode-setup/main/config.toml"
 
 echo "========================================================="
 echo "=    1. Downloading GETH LINUX                          ="
@@ -23,6 +23,8 @@ echo "=    3. UNZIPING MAINNET                                ="
 echo "========================================================="
 unzip mainnet.zip
 rm ./mainnet.zip
+rm ./config.toml
+wget $config_toml
 echo "========================================================="
 echo "=    4. Initiliaze Genesis Node                         ="
 echo "========================================================="
