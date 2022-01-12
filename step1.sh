@@ -26,6 +26,7 @@ rm ./mainnet.zip
 echo "========================================================="
 echo "=    4. Initiliaze Genesis Node                         ="
 echo "========================================================="
+chmod 777 ./geth_linux
 ./geth_linux --datadir ./node init ./genesis.json
 echo "========================================================="
 echo "=    5. DOWNLOADING SNAPSHOT                            ="
