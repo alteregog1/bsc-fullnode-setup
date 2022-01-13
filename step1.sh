@@ -39,8 +39,8 @@ echo "=    Please see this link to download your snapshot     ="
 echo "=    https://github.com/binance-chain/bsc-snapshots     ="
 echo "========================================================="
 echo "Input your snapshot endpoint: "
-read eu_endpoint 
-nohup wget -bqc -O geth.tar.lz4 $eu_endpoint &
+read snapshot_endpoint 
+nohup wget -bqc -O geth.tar.lz4 $snapshot_endpoint  &
 echo "========================================================="
 echo "=    Downloading on background process, please wait     ="
 echo "========================================================="
