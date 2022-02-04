@@ -6,6 +6,7 @@ import requests
 from zipfile import ZipFile
 import subprocess
 from subprocess import STDOUT
+from pathlib import Path
 
 
 def subprocess_command(command):
@@ -48,7 +49,8 @@ class InstallState():
 
 
 if not os.path.exists("install.log"):
-    open("install.log","w")
+    open("install.log", "w")
+
 
 class InstallLog():
     def __init__(self, state):
@@ -152,16 +154,65 @@ def convert_size(size_bytes):
     return "%s %s" % (s, size_name[i])
 
 
-def bar_progress(current, total, width=80):
-    progress_message = f"Downloading: {current / total:.2%} [ {convert_size(current)} / {convert_size(total)} ]"
-    # Don't use print() as it will print in new line every time.
-    sys.stdout.write(Fore.WHITE + progress_message + "\r")
-    sys.stdout.flush()
+class download():
+    def bar_progress(self, current, total, width=100):
+        progress_message = f"Downloading: {current / total:.2%} [ {convert_size(current)} / {convert_size(total)} ]"
+        # Don't use print() as it will print in new line every time.
+        sys.stdout.write(Fore.WHITE + progress_message + "\r")
+        sys.stdout.flush()
 
+    def url(self, url, output):
+        wget.download(url, output, bar=self.bar_progress)
+        sys.stdout.write("\n")
 
-def download_url(url, output):
-    wget.download(url, output, bar=bar_progress)
-    sys.stdout.write("\n")
+    def downloader(self, url: str, output: str, resume_byte_pos: int = None):
+        # Get size of file
+        r = requests.head(url)
+        file_size = int(r.headers.get('content-length', 0))
+
+        # Append information to resume download at specific byte position
+        # to header
+        resume_header = ({'Range': f'bytes={resume_byte_pos}-'}
+                         if resume_byte_pos else None)
+
+        # Establish connection
+        r = requests.get(url, stream=True, headers=resume_header)
+
+        # Set configuration
+        block_size = 1024
+        initial_pos = resume_byte_pos if resume_byte_pos else 0
+        mode = 'ab' if resume_byte_pos else 'wb'
+        file = Path(output)
+
+        with open(file, mode) as f:
+            with tqdm(total=file_size, unit='B',
+                      unit_scale=True, unit_divisor=1024,
+                      desc=file.name, initial=initial_pos,
+                      ascii=True, miniters=1) as pbar:
+                for chunk in r.iter_content(32 * block_size):
+                    f.write(chunk)
+                    pbar.update(len(chunk))
+
+    def start(self, url: str, output: str) -> None:
+        # Establish connection to header of file
+        r = requests.head(url)
+
+        # Get filesize of online and offline file
+        file_size_online = int(r.headers.get('content-length', 0))
+        file = Path(output)
+
+        if file.exists():
+            file_size_offline = file.stat().st_size
+
+            if file_size_online != file_size_offline:
+                print(f'File {file} is incomplete. Resume download.')
+                self.downloader(url, output, file_size_offline)
+            else:
+                print(f'File {file} is complete. Skip download.')
+                pass
+        else:
+            print(f'File {file} does not exist. Start download.')
+            self.downloader(url, output)
 
 
 def get_snapshot_endpoint(location):
@@ -249,13 +300,13 @@ if not InstallLog(InstallState.DOWNLOAD_SETUP_FILES).check_state():
 
     if not os.path.exists("geth_linux"):
         print(Fore.YELLOW + "|----------[ Downloading geth_linux ]----------|")
-        download_url(geth_linux, "geth_linux")
+        download().start(geth_linux, "geth_linux")
         os.chmod("./geth_linux", permission)
         print("")
 
     if not os.path.exists("mainnet.zip"):
         print(Fore.YELLOW + "|----------[ Downloading mainnet.zip ]----------|")
-        download_url(mainnet, "mainnet.zip")
+        download().start(mainnet, "mainnet.zip")
         os.chmod("./mainnet.zip", permission)
         print("")
         print(Fore.YELLOW + "|----------[ extracting mainnet.zip ]----------|")
@@ -264,7 +315,7 @@ if not InstallLog(InstallState.DOWNLOAD_SETUP_FILES).check_state():
 
     if not os.path.exists("config.toml"):
         print(Fore.YELLOW + "|----------[ Downloading config.toml ]----------|")
-        download_url(config_toml, "config.toml")
+        download().start(config_toml, "config.toml")
         os.chmod("./config.toml", permission)
         print("")
 
@@ -281,7 +332,6 @@ if not InstallLog(InstallState.INITIALIZE_GENESIS).check_state():
 
     InstallLog(InstallState.INITIALIZE_GENESIS).add_state(InstallState.DONE)
 
-if not os.path.exists("snapshot.tar.lz4"):
     if not InstallLog(InstallState.DOWNLOADING_SNAPSHOT).check_state():
 
         InstallLog(InstallState.DOWNLOADING_SNAPSHOT).add_state(InstallState.PENDING)
@@ -305,7 +355,7 @@ if not os.path.exists("snapshot.tar.lz4"):
 
         print(Fore.YELLOW + "|----------[ Downloading Snapshot ]----------|")
         print(f"{Fore.RED}This will take a few hours, please don't close your terminal session")
-        subprocess_command(f"wget -c -O snapshot.tar.lz4 {snapshot_url}")
+        download().start(snapshot_url, "snapshot.tar.lz4")
         print("")
 
         InstallLog(InstallState.DOWNLOADING_SNAPSHOT).add_state(InstallState.DONE)
@@ -331,30 +381,6 @@ if not os.path.exists("snapshot.tar.lz4"):
             print("")
 
             InstallLog(InstallState.MOVING_SNAPSHOT).add_state(InstallState.DONE)
-
-else:
-
-    if not InstallLog(InstallState.EXTRACT_SNAPSHOT).check_state():
-        InstallLog(InstallState.EXTRACT_SNAPSHOT).add_state(InstallState.PENDING)
-
-        print(Fore.YELLOW + "|----------[ Extracting Snapshot ]----------|")
-        print(f"{Fore.RED}This will take a few hours, please don't close your terminal session")
-        subprocess_command("lz4 -d snapshot.tar.lz4 | tar -xv")
-        print("")
-
-        InstallLog(InstallState.EXTRACT_SNAPSHOT).add_state(InstallState.DONE)
-
-    if not InstallLog(InstallState.MOVING_SNAPSHOT).check_state():
-        InstallLog(InstallState.MOVING_SNAPSHOT).add_state(InstallState.PENDING)
-
-        print(Fore.YELLOW + "|----------[ Moving Snapshot to Node ]----------|")
-        print(f"{Fore.RED}This will take a few minutes, please don't close your terminal session")
-        subprocess_command(f"rm -r {cur_dir}/node/geth")
-        subprocess_command(f"mv -f {cur_dir}/server/data-seed/geth {cur_dir}/node/")
-        subprocess_command(f"rm -r {cur_dir}/server/")
-        print("")
-
-        InstallLog(InstallState.MOVING_SNAPSHOT).add_state(InstallState.DONE)
 
 if not InstallLog(InstallState.CREATE_START_SH).check_state():
     InstallLog(InstallState.CREATE_START_SH).add_state(InstallState.PENDING)
