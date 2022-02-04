@@ -235,7 +235,7 @@ def create_node_service():
     User=root
     Type=simple
     WorkingDirectory={cur_dir}
-    ExecStart=/bin/bash {cur_dir}/download.sh
+    ExecStart=/bin/bash {cur_dir}/start.sh
     Restart=on-failure
     RestartSec=30
     TimeoutSec=300
