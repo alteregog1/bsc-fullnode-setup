@@ -1,5 +1,13 @@
 # How To
 
+#### Requirements:
+
+- Make sure you have at least **2TB storage** on your server, because we need to download node snapshot first ( around 1TB)
+
+
+
+#### Installation:
+
 1. Change your desired directory to save or run your node.
    example ``cd /mnt/node/bsc/``
 
@@ -21,7 +29,7 @@
 
 
 
-### **Builtin command after installation done:**
+#### Builtin command after installation done:
 
 to check if your node are sync or not:
 
