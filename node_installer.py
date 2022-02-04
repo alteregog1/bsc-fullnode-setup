@@ -305,7 +305,7 @@ if not os.path.exists("snapshot.tar.lz4"):
 
         print(Fore.YELLOW + "|----------[ Downloading Snapshot ]----------|")
         print(f"{Fore.RED}This will take a few hours, please don't close your terminal session")
-        download_url(snapshot_url, "snapshot.tar.lz4")
+        subprocess_command(f"wget -c -O snapshot.tar.lz4 {snapshot_url}")
         print("")
 
         InstallLog(InstallState.DOWNLOADING_SNAPSHOT).add_state(InstallState.DONE)
