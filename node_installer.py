@@ -154,17 +154,7 @@ def convert_size(size_bytes):
     return "%s %s" % (s, size_name[i])
 
 
-class download():
-    def bar_progress(self, current, total, width=100):
-        progress_message = f"Downloading: {current / total:.2%} [ {convert_size(current)} / {convert_size(total)} ]"
-        # Don't use print() as it will print in new line every time.
-        sys.stdout.write(Fore.WHITE + progress_message + "\r")
-        sys.stdout.flush()
-
-    def url(self, url, output):
-        wget.download(url, output, bar=self.bar_progress)
-        sys.stdout.write("\n")
-
+class Downloader():
     def downloader(self, url: str, output: str, resume_byte_pos: int = None):
         # Get size of file
         r = requests.head(url)
@@ -193,7 +183,7 @@ class download():
                     f.write(chunk)
                     pbar.update(len(chunk))
 
-    def start(self, url: str, output: str) -> None:
+    def download(self, url: str, output: str) -> None:
         # Establish connection to header of file
         r = requests.head(url)
 
@@ -205,13 +195,13 @@ class download():
             file_size_offline = file.stat().st_size
 
             if file_size_online != file_size_offline:
-                print(f'File {file} is incomplete. Resume download.')
+                print(f'File {file} ({convert_size(file_size_online)}) is incomplete. Resume download.')
                 self.downloader(url, output, file_size_offline)
             else:
-                print(f'File {file} is complete. Skip download.')
+                print(f'File {file} ({convert_size(file_size_online)}) is complete. Skip download.')
                 pass
         else:
-            print(f'File {file} does not exist. Start download.')
+            print(f'File {file} ({convert_size(file_size_online)}) does not exist. Start download.')
             self.downloader(url, output)
 
 
@@ -232,25 +222,9 @@ def get_snapshot_endpoint(location):
         return dom.xpath('//*[@id="readme"]/div[2]/article/p[5]/a')[0].attrib['href']
 
 
-def get_size(start_path='.'):
-    total_size = 0
-    if os.path.isdir(start_path):
-        for dirpath, dirnames, filenames in os.walk(start_path):
-            for f in filenames:
-                fp = os.path.join(dirpath, f)
-                # skip if it is symbolic link
-                if not os.path.islink(fp):
-                    total_size += os.path.getsize(fp)
-
-        return total_size
-    else:
-        return os.path.getsize(start_path)
-
-
 def create_start_node():
     with open("start.sh", "w") as f:
-        f.write(
-            './geth_linux --config ./config.toml --datadir ./node --cache 18000 --rpc.allow-unprotected-txs --txlookuplimit 0 --http --maxpeers 150 --ws --syncmode=full --snapshot=true --diffsync --graphql --graphql.vhosts "0.0.0.0"')
+        f.write('./geth_linux --config ./config.toml --datadir ./mainnet --cache 18000 --rpc.allow-unprotected-txs --txlookuplimit 0 --http --maxpeers 150 --ws --syncmode=full --snapshot=true --diffsync --graphql --graphql.vhosts "0.0.0.0"')
 
 
 def create_node_service():
@@ -261,7 +235,7 @@ def create_node_service():
     User=root
     Type=simple
     WorkingDirectory={cur_dir}
-    ExecStart=/bin/bash {cur_dir}/start.sh
+    ExecStart=/bin/bash {cur_dir}/download.sh
     Restart=on-failure
     RestartSec=30
     TimeoutSec=300
@@ -277,11 +251,11 @@ def create_node_service():
 
 def create_connection():
     with open("node-sync.sh", "w") as f:
-        f.write('./geth_linux attach ./node/geth.ipc --exec "eth.syncing"')
+        f.write('./geth_linux attach ./mainnet/geth.ipc --exec "eth.syncing"')
         f.close()
 
     with open("block-check.sh", "w") as f:
-        f.write('./geth_linux attach ./node/geth.ipc --exec "eth.syncing.highestBlock - eth.syncing.currentBlock"')
+        f.write('./geth_linux attach ./mainnet/geth.ipc --exec "eth.syncing.highestBlock - eth.syncing.currentBlock"')
         f.close()
 
     os.chmod("node-sync.sh", permission)
@@ -300,13 +274,13 @@ if not InstallLog(InstallState.DOWNLOAD_SETUP_FILES).check_state():
 
     if not os.path.exists("geth_linux"):
         print(Fore.YELLOW + "|----------[ Downloading geth_linux ]----------|")
-        download().start(geth_linux, "geth_linux")
+        Downloader().download(geth_linux, "geth_linux")
         os.chmod("./geth_linux", permission)
         print("")
 
     if not os.path.exists("mainnet.zip"):
         print(Fore.YELLOW + "|----------[ Downloading mainnet.zip ]----------|")
-        download().start(mainnet, "mainnet.zip")
+        Downloader().download(mainnet, "mainnet.zip")
         os.chmod("./mainnet.zip", permission)
         print("")
         print(Fore.YELLOW + "|----------[ extracting mainnet.zip ]----------|")
@@ -315,7 +289,7 @@ if not InstallLog(InstallState.DOWNLOAD_SETUP_FILES).check_state():
 
     if not os.path.exists("config.toml"):
         print(Fore.YELLOW + "|----------[ Downloading config.toml ]----------|")
-        download().start(config_toml, "config.toml")
+        Downloader().download(config_toml, "config.toml")
         os.chmod("./config.toml", permission)
         print("")
 
@@ -328,7 +302,7 @@ if not InstallLog(InstallState.INITIALIZE_GENESIS).check_state():
     print(Fore.GREEN + "|    2. INITIALIZE GENESIS NODE   |")
     print(Fore.GREEN + "===================================")
     subprocess_command(
-        "./geth_linux --datadir ./node init ./mainnet/genesis.json")
+        "./geth_linux --datadir ./mainnet init ./mainnet/genesis.json")
 
     InstallLog(InstallState.INITIALIZE_GENESIS).add_state(InstallState.DONE)
 
@@ -355,7 +329,7 @@ if not InstallLog(InstallState.INITIALIZE_GENESIS).check_state():
 
         print(Fore.YELLOW + "|----------[ Downloading Snapshot ]----------|")
         print(f"{Fore.RED}This will take a few hours, please don't close your terminal session")
-        download().start(snapshot_url, "snapshot.tar.lz4")
+        Downloader().download(snapshot_url, "snapshot.tar.lz4")
         print("")
 
         InstallLog(InstallState.DOWNLOADING_SNAPSHOT).add_state(InstallState.DONE)
@@ -375,8 +349,8 @@ if not InstallLog(InstallState.INITIALIZE_GENESIS).check_state():
 
             print(Fore.YELLOW + "|----------[ Moving Snapshot to Node ]----------|")
             print(f"{Fore.RED}This will take a few minutes, please don't close your terminal session")
-            subprocess_command(f"rm -r {cur_dir}/node/geth")
-            subprocess_command(f"mv -f {cur_dir}/server/data-seed/geth {cur_dir}/node/")
+            subprocess_command(f"rm -r {cur_dir}/mainnet/geth")
+            subprocess_command(f"mv -f {cur_dir}/server/data-seed/geth {cur_dir}/mainnet/")
             subprocess_command(f"rm -r {cur_dir}/server/")
             print("")
 
