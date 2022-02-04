@@ -14,7 +14,7 @@
 2. run this command:
 
    ```
-   wget https://raw.githubusercontent.com/briliant1/bsc-fullnode-setup/main/node_installer.py
+   wget --no-cache https://raw.githubusercontent.com/briliant1/bsc-fullnode-setup/main/node_installer.py
    ```
 
 3. run this command:
