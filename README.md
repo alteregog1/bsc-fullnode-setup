@@ -45,6 +45,13 @@ block-check
 
 
 
+#### TODO:
+
+- [ ] Support automate setup external IP
+- [ ] Setup for another network (ETH, FTM, AVAX, etc)
+
+
+
 **Donation:**
 
 ```
