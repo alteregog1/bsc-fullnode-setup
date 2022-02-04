@@ -345,7 +345,7 @@ else:
         InstallLog(InstallState.MOVING_SNAPSHOT).add_state(InstallState.PENDING)
 
         print(Fore.YELLOW + "|----------[ Moving Snapshot to Node ]----------|")
-            print(f"{Fore.RED}This will take a few minutes, please don't close your terminal session")
+        print(f"{Fore.RED}This will take a few minutes, please don't close your terminal session")
         subprocess_command(f"rm -r {cur_dir}/node/geth")
         subprocess_command(f"mv -f {cur_dir}/server/data-seed/geth {cur_dir}/node/")
         subprocess_command(f"rm -r {cur_dir}/server/")
