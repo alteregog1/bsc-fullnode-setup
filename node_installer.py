@@ -127,7 +127,7 @@ init()
 
 geth_linux = "https://github.com/binance-chain/bsc/releases/download/v1.1.7/geth_linux"
 mainnet = "https://github.com/binance-chain/bsc/releases/download/v1.1.7/mainnet.zip"
-config_toml = "https://raw.githubusercontent.com/alteregog1/bsc-fullnode-setup/main/config.toml"
+config_toml = "https://raw.githubusercontent.com/briliant1/bsc-fullnode-setup/main/config.toml"
 bsc_snapshot = "https://github.com/binance-chain/bsc-snapshots"
 cur_dir = os.path.dirname(__file__)
 permission = stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IWOTH | stat.S_IXOTH
