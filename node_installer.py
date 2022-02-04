@@ -47,6 +47,9 @@ class InstallState():
     DONE = "DONE"
 
 
+if not os.path.exists("install.log"):
+    open("install.log","w")
+
 class InstallLog():
     def __init__(self, state):
         super().__init__()
